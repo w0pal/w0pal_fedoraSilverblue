@@ -1,0 +1,13 @@
+[Unit]
+Description=Load v4l2loopback kernel module (Secure Boot workaround)
+After=systemd-modules-load.service local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+SELinuxContext=system_u:system_r:unconfined_service_t:s0
+ExecStart=/usr/local/bin/load-v4l2loopback.sh
+ExecStop=/usr/sbin/rmmod v4l2loopback
+
+[Install]
+WantedBy=multi-user.target

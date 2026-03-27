@@ -26,6 +26,10 @@ Agar Fedora Silverblue tidak menanyakan password LUKS berulang kali setiap kali 
    ```bash
    sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/sdbX
    ```
+3. **Reset/Hapus TPM (Opsional):** Jika suatu saat kamu ingin menghapus konfigurasi *auto-unlock* (misal saat ingin update BIOS atau ganti perangkat keras), hapus identitas TPM pada LUKS dengan perintah:
+   ```bash
+   sudo systemd-cryptenroll /dev/sdbX --wipe-slot=tpm2
+   ```
 *(Ganti `/dev/sdbX` dengan lokasi partisi LUKS aslimu).*
 
 ---
