@@ -126,11 +126,8 @@ XDG_PICTURES_DIR="${HDD_WINDOWS_MOUNT}/photos"
 XDG_VIDEOS_DIR="${HDD_WINDOWS_MOUNT}/video"
 EOF
 
-echo "4. Fitur Tambahan (OBS v4l2loopback & Discord Flatpak)..."
+echo "4. Fitur Tambahan (OBS v4l2loopback)..."
 sudo bash -c 'echo "options v4l2loopback exclusive_caps=1 card_label=\"OBS Virtual Camera\"" > /etc/modprobe.d/v4l2loopback.conf'
-
-flatpak override --user --filesystem=xdg-run/discord-ipc-0 --filesystem=xdg-run/discord-ipc-1 dev.vencord.Vesktop
-flatpak override --user --filesystem=xdg-run/discord-ipc-0 --filesystem=xdg-run/discord-ipc-1 com.discordapp.Discord
 
 echo "========================================================="
 echo "✅ Konfigurasi Sistem Selesai!"

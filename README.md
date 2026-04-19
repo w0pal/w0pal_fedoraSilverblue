@@ -1,13 +1,14 @@
 # Panduan Lengkap Instalasi & Optimasi Fedora Silverblue (Ext4)
 
-Dokumen ini berisi rangkuman seluruh konfigurasi, *troubleshooting*, dan optimasi yang telah kita diskusikan untuk sistem Fedora Silverblue kamu. Simpan file ini sebagai referensi jika sewaktu-waktu ingin melakukan instalasi ulang.
+Dokumen ini berisi rangkuman seluruh konfigurasi, _troubleshooting_, dan optimasi yang telah kita diskusikan untuk sistem Fedora Silverblue kamu. Simpan file ini sebagai referensi jika sewaktu-waktu ingin melakukan instalasi ulang.
 
 ---
 
 ## 1. Instalasi Fedora Silverblue dengan Partisi Ext4
+
 Agar sistem jauh lebih ringan dan bebas hambatan I/O di SSD SATA, instal ulang menggunakan filesystem **Ext4** (menggantikan BTRFS bawaan).
 
-1. Masuk ke *installer* Anaconda Fedora Silverblue.
+1. Masuk ke _installer_ Anaconda Fedora Silverblue.
 2. Pada bagian **Installation Destination**, pilih **Custom** (bukan Automatic).
 3. Hapus seluruh partisi BTRFS bawaan yang sudah ada.
 4. Buat partisi manual (Standard Partition):
@@ -19,6 +20,7 @@ Agar sistem jauh lebih ringan dan bebas hambatan I/O di SSD SATA, instal ulang m
 ---
 
 ## 2. Auto-Unlock LUKS dengan TPM2.0 (Anti-Reset saat Update)
+
 Agar Fedora Silverblue tidak menanyakan password LUKS berulang kali setiap kali sistem melakukan update `rpm-ostree`, kita mengikatnya ke PCR 7.
 
 1. Identifikasi partisi LUKS kamu (misal: `/dev/nvme0n1p3` atau `/dev/sdb3`).
@@ -26,22 +28,24 @@ Agar Fedora Silverblue tidak menanyakan password LUKS berulang kali setiap kali 
    ```bash
    sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/sdbX
    ```
-3. **Reset/Hapus TPM (Opsional):** Jika suatu saat kamu ingin menghapus konfigurasi *auto-unlock* (misal saat ingin update BIOS atau ganti perangkat keras), hapus identitas TPM pada LUKS dengan perintah:
+3. **Reset/Hapus TPM (Opsional):** Jika suatu saat kamu ingin menghapus konfigurasi _auto-unlock_ (misal saat ingin update BIOS atau ganti perangkat keras), hapus identitas TPM pada LUKS dengan perintah:
    ```bash
    sudo systemd-cryptenroll /dev/sdbX --wipe-slot=tpm2
    ```
-*(Ganti `/dev/sdbX` dengan lokasi partisi LUKS aslimu).*
+   _(Ganti `/dev/sdbX` dengan lokasi partisi LUKS aslimu)._
 
 ---
 
 ## 3. Konfigurasi LDM Dynamic Disk (Mount HDD Windows Read/Write)
-Windows LDM tidak langsung terbaca di Linux. Butuh *tools* tambahan agar termount otomatis saat *booting*.
+
+Windows LDM tidak langsung terbaca di Linux. Butuh _tools_ tambahan agar termount otomatis saat _booting_.
 
 1. **Install dependensi:**
    ```bash
    sudo rpm-ostree install libldm ntfs3-progs
    ```
 2. **Buat service aktivator LDM** (`sudo nano /etc/systemd/system/ldmtool.service`):
+
    ```ini
    [Unit]
    Description=LDM Tool
@@ -56,7 +60,9 @@ Windows LDM tidak langsung terbaca di Linux. Butuh *tools* tambahan agar termoun
    [Install]
    WantedBy=local-fs.target
    ```
+
 3. **Buat service Auto-Mount** (`sudo nano /etc/systemd/system/mnt-windows--hdd.mount`):
+
    ```ini
    [Unit]
    Description=Mount Windows HDD
@@ -70,7 +76,9 @@ Windows LDM tidak langsung terbaca di Linux. Butuh *tools* tambahan agar termoun
    [Install]
    WantedBy=multi-user.target
    ```
-   *(Pastikan nama file `.mount` persis sesuai struktur `Where`, contoh `/mnt/windows-hdd` menjadi `mnt-windows--hdd.mount`. Ganti `What=` dengan nama map ldm volume aslimu).*
+
+   _(Pastikan nama file `.mount` persis sesuai struktur `Where`, contoh `/mnt/windows-hdd` menjadi `mnt-windows--hdd.mount`. Ganti `What=` dengan nama map ldm volume aslimu)._
+
 4. **Enable keduanya:**
    ```bash
    sudo systemctl enable ldmtool.service mnt-windows--hdd.mount
@@ -79,7 +87,8 @@ Windows LDM tidak langsung terbaca di Linux. Butuh *tools* tambahan agar termoun
 ---
 
 ## 4. Perbaikan Steam Recording (Error Export / Codec)
-Untuk membuka blokiran *Hardware Encoding* di AMD Radeon RX (Fitur H.264/HEVC dihapus oleh Fedora karena paten).
+
+Untuk membuka blokiran _Hardware Encoding_ di AMD Radeon RX (Fitur H.264/HEVC dihapus oleh Fedora karena paten).
 
 1. Tukar driver Mesa bawaan dengan versi RPM Fusion (Freeworld):
    ```bash
@@ -89,26 +98,21 @@ Untuk membuka blokiran *Hardware Encoding* di AMD Radeon RX (Fitur H.264/HEVC di
      --idempotent
    ```
 2. Restart PC.
-3. Buka **Steam Settings > Game Recording**. Jika *Export* masih gagal, ubah format dari HEVC (H.265) menjadi **H.264**.
+3. Buka **Steam Settings > Game Recording**. Jika _Export_ masih gagal, ubah format dari HEVC (H.265) menjadi **H.264**.
 
 ---
 
 ## 5. Discord / Vesktop Flatpak: Fix Rich Presence
-Aplikasi Discord bentuk Flatpak diisolasi di *sandbox*, membuat Steam gagal mendeteksi aktivitas *(Playing Game)*.
 
-1. Bypass socket *Inter-Process Communication* ke luar *sandbox*:
-   ```bash
-   # Untuk Vesktop
-   flatpak override --user --filesystem=xdg-run/discord-ipc-0 --filesystem=xdg-run/discord-ipc-1 dev.vencord.Vesktop
-   
-   # Untuk Discord Resmi
-   flatpak override --user --filesystem=xdg-run/discord-ipc-0 --filesystem=xdg-run/discord-ipc-1 com.discordapp.Discord
-   ```
+Aplikasi Discord bentuk Flatpak diisolasi di _sandbox_, membuat Steam gagal mendeteksi aktivitas _(Playing Game)_.
+
+1. Alih-alih menambahkan `--filesystem=xdg-run/discord-ipc-0` (yang bisa menyebabkan crash pada rilis flatpak baru), cara yang disarankan adalah memberi Discord/Vesktop akses ke status Steam melalui environment variable atau folder lokal jika memungkinkan tanpa map `xdg-run/discord-ipc-0` langsung.
 2. Restart Discord. Status game Steam kamu otomatis muncul.
 
 ---
 
 ## 6. Integrasi OBS Virtual Camera (Droidcam)
+
 Memastikan OBS Virtual Camera tidak rusak/hilang setelah update Kernel OS.
 
 1. **Install modul mandiri:**
@@ -123,9 +127,10 @@ Memastikan OBS Virtual Camera tidak rusak/hilang setelah update Kernel OS.
 ---
 
 ## 7. Penyesuaian I/O & Memori (Performa Mulus)
+
 Meskipun kamu sudah menggunakan Ext4, modifikasi virtual memory CPU tetap penting untuk menghindari aplikasi Electron (Chrome/Discord) yang rakus RAM.
 
-1. Ubah batas toleransi *Swap* dan *Dirty Pages* latar belakang:
+1. Ubah batas toleransi _Swap_ dan _Dirty Pages_ latar belakang:
    ```bash
    sudo bash -c 'cat > /etc/sysctl.d/99-io-fix.conf << EOF
    vm.swappiness=10
@@ -133,7 +138,7 @@ Meskipun kamu sudah menggunakan Ext4, modifikasi virtual memory CPU tetap pentin
    vm.dirty_background_ratio=5
    EOF'
    ```
-2. Ubah profil *Scheduler SSD* (Agar lebih responsif):
+2. Ubah profil _Scheduler SSD_ (Agar lebih responsif):
    ```bash
    sudo bash -c 'cat > /etc/udev/rules.d/60-ssd-scheduler.rules << EOF
    ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
@@ -143,9 +148,10 @@ Meskipun kamu sudah menggunakan Ext4, modifikasi virtual memory CPU tetap pentin
 ---
 
 ## 8. Ringkasan Isu Flatpak Ekstra Lainnya
-- **VLC Media Player:** Jangan pakai yang dari *Fedora Remote* (codec terpotong). Install murni dari Flathub: `flatpak install flathub org.videolan.VLC`.
-- **Darktable OpenCL (No Device Found):** Install *support runtime* grafis AMD di sandbox: `flatpak install flathub org.freedesktop.Platform.GL.default//24.08extra`
-- **Minecraft Launcher:** Hindari *official launcher* dari Flathub yang sering terkena error "Eroded Badlands" (karena *bug* Microsoft Account OAuth di dalam sandbox). Install dan gunakan alternatif seperti **Prism Launcher** dari Flathub.
+
+- **VLC Media Player:** Jangan pakai yang dari _Fedora Remote_ (codec terpotong). Install murni dari Flathub: `flatpak install flathub org.videolan.VLC`.
+- **Darktable OpenCL (No Device Found):** Install _support runtime_ grafis AMD di sandbox: `flatpak install flathub org.freedesktop.Platform.GL.default//24.08extra`
+- **Minecraft Launcher:** Hindari _official launcher_ dari Flathub yang sering terkena error "Eroded Badlands" (karena _bug_ Microsoft Account OAuth di dalam sandbox). Install dan gunakan alternatif seperti **Prism Launcher** dari Flathub.
 
 ---
 
@@ -154,28 +160,31 @@ Meskipun kamu sudah menggunakan Ext4, modifikasi virtual memory CPU tetap pentin
 Mencari lokasi file di Linux sedikit berbeda dengan Windows (C:\), terutama untuk aplikasi Flatpak atau game Windows yang berjalan menggunakan Wine/Proton.
 
 **1. Minecraft (Flatpak)**
-Bergantung pada launcher mana yang kamu gunakan, folder `.minecraft` tempat kamu bisa memasang *Shaders, Mods,* atau memindahkan *World* dari Windows berada di:
+Bergantung pada launcher mana yang kamu gunakan, folder `.minecraft` tempat kamu bisa memasang _Shaders, Mods,_ atau memindahkan _World_ dari Windows berada di:
+
 - **Prism Launcher (Disarankan):** `~/.var/app/org.prismlauncher.PrismLauncher/data/PrismLauncher/instances/<nama_instance_kamu>/.minecraft/`
 - **Official Launcher:** `~/.var/app/com.mojang.Minecraft/data/minecraft/`
 
 **2. Yakuza: Like a Dragon (GOG FitGirl Repack via Steam Proton)**
-Karena kamu menambahkan game repacks ini sebagai *Non-Steam Game* menggunakan Steam Native asli bawaan OS (bukan Flatpak), strukturnya menjadi:
+Karena kamu menambahkan game repacks ini sebagai _Non-Steam Game_ menggunakan Steam Native asli bawaan OS (bukan Flatpak), strukturnya menjadi:
+
 - **Lokasi Install Data Game:** `<GAMEDATA_MOUNT>/Games`
 - **Lokasi Save Data:** Steam otomatis beraksi membuat "Windows C: Virtual" (Prefix) tersendiri di folder `compatdata` dengan kode unik `2888456782`. Folder Save Data kamu persisnya ada di rute ini:
-`~/.local/share/Steam/steamapps/compatdata/2888456782/pfx/drive_c/users/steamuser/AppData/Roaming/Sega/YakuzaLikeADragon_GOG/`
-*(Setiap penambahan game Non-Steam baru ke depan, Steam akan membuat folder angka acak 10-digit baru di sebelah folder `2888456782` tersebut).*
+  `~/.local/share/Steam/steamapps/compatdata/2888456782/pfx/drive_c/users/steamuser/AppData/Roaming/Sega/YakuzaLikeADragon_GOG/`
+  _(Setiap penambahan game Non-Steam baru ke depan, Steam akan membuat folder angka acak 10-digit baru di sebelah folder `2888456782` tersebut)._
 
 ---
 
 ## 10. Symlink Folder Windows ke Direktori Home (Nautilus)
-Agar folder bawaan Linux (Documents, Downloads, Music, Pictures, Videos) langsung terhubung (symlink) ke HDD Windows dan terbaca resmi oleh *file manager* Nautilus:
+
+Agar folder bawaan Linux (Documents, Downloads, Music, Pictures, Videos) langsung terhubung (symlink) ke HDD Windows dan terbaca resmi oleh _file manager_ Nautilus:
 
 1. **Hapus folder bawaan Linux:**
    ```bash
    rm -rf ~/Downloads ~/Documents ~/Music ~/Pictures ~/Videos
    ```
 2. **Buat Symlink ke HDD Windows:**
-   *(Ganti `<HDD_WINDOWS_MOUNT>` dengan letak partisi NTFS asli komputermu kelak)*
+   _(Ganti `<HDD_WINDOWS_MOUNT>` dengan letak partisi NTFS asli komputermu kelak)_
    ```bash
    ln -s "<HDD_WINDOWS_MOUNT>/installer or zip" ~/Downloads
    ln -s "<HDD_WINDOWS_MOUNT>/Documents" ~/Documents
@@ -184,7 +193,7 @@ Agar folder bawaan Linux (Documents, Downloads, Music, Pictures, Videos) langsun
    ln -s "<HDD_WINDOWS_MOUNT>/video" ~/Videos
    ```
 3. **Daftarkan rute absolutnya ke XDG User Dirs:**
-   Agar aplikasi lain (*browser*, *save dialog*) paham rute barunya, ubah isi file `~/.config/user-dirs.dirs`:
+   Agar aplikasi lain (_browser_, _save dialog_) paham rute barunya, ubah isi file `~/.config/user-dirs.dirs`:
    ```bash
    cat << 'EOF' > ~/.config/user-dirs.dirs
    XDG_DESKTOP_DIR="$HOME/Desktop"
@@ -201,6 +210,7 @@ Agar folder bawaan Linux (Documents, Downloads, Music, Pictures, Videos) langsun
 ---
 
 ## 11. Setup Samba (File Sharing) di Fedora Silverblue
+
 Agar bisa berbagi file antar PC di jaringan lokal via protokol SMB:
 
 1. **Install Samba (butuh restart OS):**
@@ -209,6 +219,7 @@ Agar bisa berbagi file antar PC di jaringan lokal via protokol SMB:
    ```
 2. **Edit Konfigurasi Samba (`/etc/samba/smb.conf`):**
    Buat atau edit file `/etc/samba/smb.conf`, misal untuk berbagi folder Public:
+
    ```ini
    # See smb.conf.example for a more detailed config file or
    # read the smb.conf manpage.
@@ -248,6 +259,7 @@ Agar bisa berbagi file antar PC di jaringan lokal via protokol SMB:
            guest ok = no
            read only = no
    ```
+
 3. **Buat Password Samba untuk Usermu:**
    ```bash
    sudo smbpasswd -a homepc
@@ -270,9 +282,11 @@ Agar bisa berbagi file antar PC di jaringan lokal via protokol SMB:
 ---
 
 ## 12. Install Microsoft Fonts (Cara Aman untuk Silverblue)
+
 Karena arsitektur Fedora Silverblue melarang modifikasi folder `/usr/share/fonts` secara langsung, cara terbaik dan paling aman untuk menginstall font Windows (Arial, Times New Roman, Calibri, dll) adalah dengan menaruhnya di dalam folder pengguna lokal (tanpa perlu lewat `rpm-ostree`).
 
 Tinggal jalankan rentetan perintah ini di terminal:
+
 ```bash
 # 1. Buat folder fonts khusus di home directory kamu
 mkdir -p ~/.local/share/fonts/mscorefonts
@@ -289,14 +303,17 @@ rm -rf ms-fonts-master master.zip
 # 4. Refresh database font Linux kamu
 fc-cache -fv
 ```
-*(Font Microsoft milikmu kini sudah langsung dapat digunakan di LibreOffice, Antigravity/VSCode, maupun aplikasi Flatpak mana saja, dan dijamin **tidak akan hilang** biarpun PC di-restart atau Silverblue update ke versi terbaru).*
+
+_(Font Microsoft milikmu kini sudah langsung dapat digunakan di LibreOffice, Antigravity/VSCode, maupun aplikasi Flatpak mana saja, dan dijamin **tidak akan hilang** biarpun PC di-restart atau Silverblue update ke versi terbaru)._
 
 ---
 
 ## 13. Manajemen Repositori (RPM Fusion & Copr)
+
 Karena Fedora secara default memblokir aplikasi non-free (tertutup paten seperti mp3, h264, discord, steam), kamu harus menyalakan Repositori Pihak Ketiga:
 
 **1. Menyalakan RPM Fusion (Free & Non-Free):**
+
 ```bash
 sudo rpm-ostree install \
     https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
@@ -307,6 +324,7 @@ sudo rpm-ostree install \
 Karena Fedora Silverblue murni berbasis `rpm-ostree` dan tidak memiliki `dnf` bawaan aktif, perintah lawas seperti `dnf copr enable` akan membuahkan error. Cara resminya di Silverblue adalah mendaftarkan URL repositori tersebut secara mentah-mentah ke folder `/etc/yum.repos.d/`.
 
 Salin dan eksekusi blok ini sekaligus di terminal kamu:
+
 ```bash
 # Repo Antigravity
 sudo bash -c 'cat > /etc/yum.repos.d/antigravity.repo << \EOF
@@ -349,18 +367,19 @@ EOF'
 ---
 
 ## 14. Skrip Otomatisasi Instalasi & System Backup (Modular)
-Daripada repot melakukan langkah nomor 1-13 di atas satu per satu secara manual saat kamu memutuskan *clean install* kelak, kamu bisa menggunakan 4 buah *script Bash* modular yang membedah *workflow* instalasi menjadi beberapa babak:
 
-**Script 1: `silverblue_backup.sh`** 
-Jalankan di Fedora kamu sekarang juga sebelum memutuskan install ulang OS. Script ini akan membungkus seluruh sejarah konfigurasi aplikasi, cache, data rahasia SSH, dan Flatpak (berupa isi direktori `~/.config`, `~/.var/app`, `~/.local/share/fonts`, dll) ke dalam file `silverblue_backup_... .tar.gz`. Simpan file hasil *backup* ini di HDD Windows!
+Daripada repot melakukan langkah nomor 1-13 di atas satu per satu secara manual saat kamu memutuskan _clean install_ kelak, kamu bisa menggunakan 4 buah _script Bash_ modular yang membedah _workflow_ instalasi menjadi beberapa babak:
+
+**Script 1: `silverblue_backup.sh`**
+Jalankan di Fedora kamu sekarang juga sebelum memutuskan install ulang OS. Script ini akan membungkus seluruh sejarah konfigurasi aplikasi, cache, data rahasia SSH, dan Flatpak (berupa isi direktori `~/.config`, `~/.var/app`, `~/.local/share/fonts`, dll) ke dalam file `silverblue_backup_... .tar.gz`. Simpan file hasil _backup_ ini di HDD Windows!
 
 **Script 2: `silverblue_install_packages.sh`**
-Si *Automator* Paket Dasar. Setelah OS baru terinstall, jalankan script ini **pertama kali**. Ia bertugas memborong unduhan seluruh aplikasi Flatpak, mendaftarkan Repository RPM Fusion / Copr, hingga menanam codec Mesa Freeworld dan kawan-kawannya lewat `rpm-ostree`. Setelah script ini rampung, PC **wajib di-restart**.
+Si _Automator_ Paket Dasar. Setelah OS baru terinstall, jalankan script ini **pertama kali**. Ia bertugas memborong unduhan seluruh aplikasi Flatpak, mendaftarkan Repository RPM Fusion / Copr, hingga menanam codec Mesa Freeworld dan kawan-kawannya lewat `rpm-ostree`. Setelah script ini rampung, PC **wajib di-restart**.
 
 **Script 3: `silverblue_setup_configs.sh`**
-Si *Automator* Konfigurasi Cerdas. Jalankan **setelah kamu restart dari langkah kedua**. Script ini tidak butuh internet sama sekali. Ia akan mendeteksi keberadaan LUKS, HDD LDM Windows, dan BTRFS GameData menggunakan `lsblk` otomatis, kemudian menjahit *Symlink* folder Nautilus, mengaktifkan Sysctl I/O Fix, hingga membuat fondasi *Systemd Service* untuk Samba dan kawan-kawan dari angka 1-13 sebelumnya. Tanpa keringat!
+Si _Automator_ Konfigurasi Cerdas. Jalankan **setelah kamu restart dari langkah kedua**. Script ini tidak butuh internet sama sekali. Ia akan mendeteksi keberadaan LUKS, HDD LDM Windows, dan BTRFS GameData menggunakan `lsblk` otomatis, kemudian menjahit _Symlink_ folder Nautilus, mengaktifkan Sysctl I/O Fix, hingga membuat fondasi _Systemd Service_ untuk Samba dan kawan-kawan dari angka 1-13 sebelumnya. Tanpa keringat!
 
-**Script 4: `silverblue_restore_configs.sh`** 
-Langkah termanis. Panggil ini untuk mengekstrak dan menimpakan kembali seluruh isi wadah *backup* `.tar.gz` yang telah kamu buat di awal tadi kepada rumah `/home` barumu, mengembalikan keajaiban Desktop kamu persis posisi aslinya.
+**Script 4: `silverblue_restore_configs.sh`**
+Langkah termanis. Panggil ini untuk mengekstrak dan menimpakan kembali seluruh isi wadah _backup_ `.tar.gz` yang telah kamu buat di awal tadi kepada rumah `/home` barumu, mengembalikan keajaiban Desktop kamu persis posisi aslinya.
 
-*(Keempat file bash script `.sh` ini sudah kujamin aman dan sangat ramah untuk dikoleksi ke dalam repositori **GitHub** pribadimu).*
+_(Keempat file bash script `.sh` ini sudah kujamin aman dan sangat ramah untuk dikoleksi ke dalam repositori **GitHub** pribadimu)._
