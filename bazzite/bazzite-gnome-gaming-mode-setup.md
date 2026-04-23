@@ -51,7 +51,37 @@ Categories=Game;System;
 - **Desktop -> Gaming Mode:** Click the "Switch to Gaming Mode" shortcut in your app drawer.
 - **Gaming Mode -> Desktop:** Press the Steam Button -> Power -> Switch to Desktop.
 
-## 5. Checking the Current Boot Default
+## 5. Permanently Booting to GNOME (Defeating SteamOS Oneshot)
+
+Because SteamOS assumes Gaming Mode is the absolute default, switching back to the desktop from Gaming Mode creates a "oneshot" session. This means if you reboot the PC, the oneshot token is destroyed and it boots back to Gaming Mode instead of GNOME.
+
+To force GNOME on **every** boot, intercept SDDM with this boot service:
+
+```bash
+sh -c 'cat << EOF > /tmp/force-gnome-boot.service
+[Unit]
+Description=Force GNOME Session as Default Boot
+After=sddm.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash -c "echo -e \"[Autologin]\nSession=gnome-wayland.desktop\" > /etc/sddm.conf.d/zz-steamos-autologin.conf"
+
+[Install]
+WantedBy=graphical.target
+EOF'
+```
+
+Enable it by running:
+
+```bash
+pkexec cp /tmp/force-gnome-boot.service /etc/systemd/system/
+pkexec systemctl enable force-gnome-boot.service
+```
+
+---
+
+## 6. Checking the Current Boot Default
 
 To verify what session your PC will boot into next, inspect the SDDM autologin configuration:
 
